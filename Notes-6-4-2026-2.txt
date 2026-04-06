@@ -1,0 +1,476 @@
+import java.util.Scanner;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+
+public class Main {
+    public static void main(String[] args) {
+        Scanner sc = new Scanner(System.in);
+
+        final int MAX = 100;
+        String[] names = new String[MAX];
+        String[] ids = new String[MAX];
+        String[] contact = new String[MAX];
+        String[] items = new String[MAX];
+        double[] totalAmount = new double[MAX];
+        double[] balance = new double[MAX];
+        LocalDate[] borrowed = new LocalDate[MAX];
+        LocalDate[] due = new LocalDate[MAX];
+        boolean[] archived = new boolean[MAX];
+
+        int count = 0;
+        DateTimeFormatter f = DateTimeFormatter.ofPattern("MM-dd-yyyy");
+
+        while (true) {
+            System.out.println("\n===== UTANG (CREDIT PURCHASE) RECORDING SYSTEM =====");
+            System.out.println("[1] Admin Login");
+            System.out.println("[2] Creditor Login");
+            System.out.println("[3] Exit");
+            System.out.print("Choose Option: ");
+            String mainChoice = sc.nextLine();
+
+            // ================= ADMIN =================
+            if (mainChoice.equals("1")) {
+                // LOGIN LOOP
+                while (true) {
+                    System.out.println("\n====== ADMIN LOGIN =======");
+                    System.out.print("Enter Username: ");
+                    String user = sc.nextLine();
+                    System.out.print("Enter Password: ");
+                    String pass = sc.nextLine();
+
+                    if (user.equals("admin") && pass.equals("1234")) {
+                        System.out.println("Login successful!");
+                        break;
+                    } else {
+                        System.out.println("Invalid credentials. Try again!\n");
+                    }
+                }
+
+                int adminChoice = 0;
+                while (adminChoice != 5) {
+                    System.out.println("\n====== ADMIN DASHBOARD ======");
+                    System.out.println("[1] Create New Utang Record");
+                    System.out.println("[2] View Utang Records");
+                    System.out.println("[3] Add Payment");
+                    System.out.println("[4] Archive Utang Records");
+                    System.out.println("[5] Logout");
+                    System.out.print("Choose Option: ");
+
+                    String choiceInput = sc.nextLine();
+                    if (!choiceInput.matches("^[1-5]$")) {
+                        System.out.println("Invalid choice.");
+                        continue;
+                    }
+                    adminChoice = Integer.parseInt(choiceInput);
+
+                    // ================= ADD RECORD =================
+                    if (adminChoice == 1) {
+                        // ID input with format and duplicate check
+                        String id;
+                        while (true) {
+                            System.out.print("Enter ID ex. (C001): ");
+                            id = sc.nextLine();
+                            if (!id.matches("^C\\d{3}$")) {
+                                System.out.println("Invalid format, Use C followed by 3 digits.");
+                                continue;
+                            }
+                            boolean duplicate = false;
+                            for (int i = 0; i < count; i++) {
+                                if (ids[i].equalsIgnoreCase(id)) {
+                                    if (archived[i]) {
+                                        System.out.println("This ID is archived and cannot be reused.");
+                                    } else {
+                                        System.out.println("This ID is already in use.");
+                                    }
+                                    duplicate = true;
+                                    break;
+                                }
+                            }
+                            if (!duplicate) break;
+                        }
+
+                        // Ask if existing creditor
+                        char exist;
+                        while (true) {
+                            System.out.print("Existing creditor? (Y/N): ");
+                            String input = sc.nextLine().toUpperCase();
+                            if (input.matches("^[YN]$")) {
+                                exist = input.charAt(0);
+                                break;
+                            } else {
+                                System.out.println("Invalid input. Enter Y or N only.");
+                            }
+                        }
+
+                        String name = "";
+                        String contactNo = "";
+
+                        // ========= EXISTING =========
+                        if (exist == 'Y') {
+                            System.out.print("Enter existing ID: ");
+                            String searchId = sc.nextLine();
+                            int foundIndex = -1;
+                            for (int i = 0; i < count; i++) {
+                                if (ids[i].equalsIgnoreCase(searchId) && !archived[i]) {
+                                    foundIndex = i;
+                                    break;
+                                }
+                            }
+                            if (foundIndex != -1) {
+                                System.out.println("Existing Creditor Found!");
+                                System.out.println("Creditor Name: " + names[foundIndex]);
+                                System.out.println("Contact: " + contact[foundIndex]);
+                                System.out.print("Use this info? (Y/N): ");
+                                char use = sc.nextLine().toUpperCase().charAt(0);
+                                if (use == 'Y') {
+                                    name = names[foundIndex];
+                                    contactNo = contact[foundIndex];
+                                }
+                            }
+                            if (name.equals("")) {
+                                System.out.println("Enter New Creditor Details.");
+                                while (true) {
+                                    System.out.print("New Creditor Name: ");
+                                    name = sc.nextLine();
+                                    if (name.matches("^[A-Za-z ]+$")) break;
+                                    System.out.println("Invalid name.");
+                                }
+                                while (true) {
+                                    System.out.print("Contact (11 digits): ");
+                                    contactNo = sc.nextLine();
+                                    if (contactNo.matches("^\\d{11}$")) break;
+                                    System.out.println("Invalid contact.");
+                                }
+                            }
+                        } else {
+                            // ========= NEW =========
+                            System.out.println("New Creditor!");
+                            while (true) {
+                                System.out.print("Name: ");
+                                name = sc.nextLine();
+                                if (name.matches("^[A-Za-z ]+$")) break;
+                                System.out.println("Invalid name.");
+                            }
+                            while (true) {
+                                System.out.print("Contact (11 digits): ");
+                                contactNo = sc.nextLine();
+                                if (contactNo.matches("^\\d{11}$")) break;
+                                System.out.println("Invalid contact.");
+                            }
+                        }
+
+                        // STORE BASIC INFO
+                        names[count] = name;
+                        ids[count] = id;
+                        contact[count] = contactNo;
+
+                        // ========= ITEMS =========
+                        double total = 0;
+                        String allItems = "";
+                        char more;
+                        do {
+                            System.out.print("Enter Item: ");
+                            String item = sc.nextLine();
+                            System.out.print("Price: ");
+                            double price = Double.parseDouble(sc.nextLine());
+                            System.out.print("Quantity: ");
+                            int qty = Integer.parseInt(sc.nextLine());
+                            double subtotal = price * qty;
+                            System.out.println("Subtotal: " + subtotal);
+                            total += subtotal;
+                            allItems += item + "(" + qty + "x" + price + "), ";
+                            System.out.print("Add another item? (Y/N): ");
+                            more = sc.nextLine().toUpperCase().charAt(0);
+                        } while (more == 'Y');
+
+                        items[count] = allItems;
+                        totalAmount[count] = total;
+                        balance[count] = total;
+
+                        // Credit Purchase Date = system date
+                        borrowed[count] = LocalDate.now();
+                        System.out.println("Credit Purchase Date: " + borrowed[count].format(f));
+
+                        // Due Date = user input
+                        while (true) {
+                            try {
+                                System.out.print("Due Date (MM-dd-yyyy): ");
+                                LocalDate temp = LocalDate.parse(sc.nextLine(), f);
+                                if (temp.isBefore(borrowed[count])) {
+                                    System.out.println("Invalid due date.");
+                                } else {
+                                    due[count] = temp;
+                                    System.out.println("Due Date: " + due[count].format(f));
+                                    break;
+                                }
+                            } catch (Exception e) {
+                                System.out.println("Invalid date.");
+                            }
+                        }
+
+                        count++;
+                        System.out.println("Utang Recorded Successfully!");
+                    }
+
+                    // ================= VIEW =================
+                    else if (adminChoice == 2) {
+                        LocalDate today = LocalDate.now();
+                        for (int i = 0; i < count; i++) {
+                            if (!archived[i]) {
+                                System.out.println("====== UTANG RECORDS ======");
+                                System.out.println("\nID: " + ids[i]);
+                                System.out.println("Name: " + names[i]);
+                                System.out.println("Items: " + items[i]);
+                                System.out.println("Balance: " + balance[i]);
+                                System.out.println("Credit Purchase Date: " + borrowed[i].format(f));
+                                System.out.println("Due: " + due[i].format(f));
+                                if (balance[i] == 0) {
+                                    System.out.println("STATUS: PAID");
+                                } else if (balance[i] < totalAmount[i]) {
+                                    System.out.println("STATUS: PARTIALLY PAID");
+                                } else if (today.isAfter(due[i])) {
+                                    System.out.println("STATUS: OVERDUE");
+                                } else {
+                                    System.out.println("STATUS: UNPAID");
+                                }
+                            }
+                        }
+                    }
+
+                    // ================= PAYMENT =================
+                       else if (adminChoice == 3) {
+                        System.out.println("====== ADD PAYMENT ======");
+                        System.out.print("Enter ID: ");
+                        String search = sc.nextLine();
+
+                        for (int i = 0; i < count; i++) {
+                            if (ids[i].equalsIgnoreCase(search)) {
+                                System.out.println("Creditor: " + names [i]);
+                                System.out.println("Balance: " + balance[i]);
+
+                                double pay;
+                                while (true) {
+                                    System.out.print("Enter Payment: ");
+                                    String input = sc.nextLine();
+
+                                    if (input.matches("^\\d+(\\.\\d+)?$")) {
+                                        pay = Double.parseDouble(input);
+                                        if (pay > 0 && pay <= balance[i]) break;
+                                    }
+                                    System.out.println("Invalid Payment.");
+                                }
+
+                                balance[i] -= pay;
+                                System.out.println("Balance Updated!");
+                                System.out.println("Updated Balance: " + balance[i]);
+                            }
+                        }
+                    }
+                    
+                     // ================= ARCHIVE =================
+                  else if (adminChoice == 4) {
+                    System.out.println("====== ARCHIVE RECORDS ======");
+                    System.out.println("[1] View Archived Records");
+                    System.out.println("[2] Archive Specific Creditor");
+                    System.out.print("Choose Option: ");
+                    String archChoice = sc.nextLine();
+
+                    if (archChoice.equals("1")) {
+                        System.out.println("====== ARCHIVED RECORDS ======");
+                        for (int i = 0; i < count; i++) {
+                            if (archived[i]) {
+                                System.out.println(ids[i] + " - " + names[i]);
+                                System.out.println("Items: " + items[i]);
+                                System.out.println("Balance: " + balance[i]);
+                                System.out.println("Credit Purchase Date: " + borrowed[i]);
+                            }
+                        }
+                    }
+
+                    else if (archChoice.equals("2")) {
+                        System.out.println("====== ARCHIVE SPECIFIC CREDITOR ======");
+                        System.out.print("Enter Creditor ID to archive: ");
+                        String searchId = sc.nextLine();
+
+                        boolean found = false;
+
+                        for (int i = 0; i < count; i++) {
+                            if (ids[i].equalsIgnoreCase(searchId) && !archived[i]) {
+
+                                found = true;
+
+                                System.out.println("\nID: " + ids[i]);
+                                System.out.println("Name: " + names[i]);
+                                System.out.println("Items: " + items[i]);
+                                System.out.println("Balance: " + balance[i]);
+
+                                // check if paid
+                                if (balance[i] != 0) {
+                                    System.out.println("Cannot archive. Balance is not yet fully paid.");
+                                    break;
+                                }
+
+                                char confirm;
+                                while (true) {
+                                    System.out.print("Archive this record? (Y/N): ");
+                                    String input = sc.nextLine().toUpperCase();
+
+                                    if (input.matches("^[YN]$")) {
+                                        confirm = input.charAt(0);
+                                        break;
+                                    } else {
+                                        System.out.println("Invalid input.");
+                                    }
+                                }
+
+                                if (confirm == 'Y') {
+                                    archived[i] = true;
+                                    System.out.println("Archived successfully: " + ids[i] + " - " + names[i]);
+                                } else {
+                                    System.out.println("Archive cancelled.");
+                                }
+
+                                break;
+                            }
+                        }
+
+                        if (!found) {
+                            System.out.println("Creditor not found.");
+                        }
+                    }
+                }
+
+                } // END ADMIN LOOP
+            }
+
+            // ================= CREDITOR =================
+           else if (mainChoice.equals("2")) {
+                System.out.print("====== CREDITOR LOGIN ====== ");
+                System.out.print("Enter ID: ");
+                String id = sc.nextLine();
+
+                boolean foundUser = false;
+
+                for (int i = 0; i < count; i++) {
+                    if (ids[i].equalsIgnoreCase(id) && !archived[i]) {
+
+                        foundUser = true;
+
+                        System.out.print("Enter Password (Contact #): ");
+                        String pass = sc.nextLine();
+
+                        if (contact[i].equals(pass)) {
+
+                            int userChoice = 0;
+
+                            while (userChoice != 3) {
+
+                                System.out.println("\n======= CREDITOR DASHBOARD =======");
+                                System.out.println("[1] View My Utang Record");
+                                System.out.println("[2] Check Status");
+                                System.out.println("[3] Logout");
+                                System.out.print("Choose an option: ");
+
+                                String input = sc.nextLine();
+                                if (!input.matches("^[1-3]$")) {
+                                    System.out.println("Invalid choice.");
+                                    continue;
+                                }
+
+                                userChoice = Integer.parseInt(input);
+
+                                // ================= VIEW RECORD =================
+                                if (userChoice == 1) {
+
+                                    System.out.println("\n==== MY UTANG RECORDS ====");
+
+                                    for (int j = 0; j < count; j++) {
+                                        if (ids[j].equalsIgnoreCase(id) && !archived[j]) {
+
+                                            System.out.println("\nItem Summary: " + items[j]);
+                                            System.out.println("Balance: " + balance[j]);
+                                            System.out.println("Date of Credit: " + borrowed[j]);
+                                            System.out.println("Due: " + due[j]);
+
+                                            System.out.println("Item Breakdown:");
+                                            String[] itemList = items[j].split(", ");
+                                            for (String line : itemList) {
+                                                if (!line.isEmpty()) {
+                                                    System.out.println(" - " + line);
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+
+                                // ================= STATUS =================
+                                else if (userChoice == 2) {
+
+                                    LocalDate today = LocalDate.now();
+
+                                    System.out.println("\n==== MY UTANG STATUS ====");
+
+                                    for (int j = 0; j < count; j++) {
+                                        if (ids[j].equalsIgnoreCase(id) && !archived[j]) {
+
+                                            if (balance[j] == 0) {
+                                                System.out.println("STATUS: PAID");
+                                            }
+
+                                            else if (balance[j] < totalAmount[j] && balance[j] > 0) {
+                                                if (today.isAfter(due[j])) {
+                                                    System.out.println("STATUS: PARTIALLY PAID (OVERDUE)");
+                                                    System.out.println("WARNING: YOU STILL HAVE PARTIAL PAYMENT OVERDUE!");
+                                                } else {
+                                                    System.out.println("STATUS: PARTIALLY PAID");
+                                                    System.out.println("REMINDER: YOU STILL HAVE PARTIAL PAYMENT DUE!");
+                                                }
+                                            }
+
+                                            else if (today.isAfter(due[j])) {
+                                                System.out.println("STATUS: OVERDUE");
+                                                System.out.println("WARNING: YOUR UTANG IS OVERDUE!");
+                                            }
+
+                                            else {
+                                                System.out.println("STATUS: UNPAID");
+                                                System.out.println("REMINDER: YOUR UTANG IS NOT YET DUE");
+                                            }
+                                        }
+                                    }
+                                }
+
+                        // ================= LOGOUT =================
+                        else if (userChoice == 3) {
+                            System.out.println("Logged Out!");
+                        }
+                    }
+
+                } else {
+                    System.out.println("Wrong password!");
+                }
+
+                break; 
+            }
+        }
+
+        if (!foundUser) {
+            System.out.println("Creditor not found.");
+        }
+    }
+
+            // ================= EXIT =================
+            else if (mainChoice.equals("3")) {
+                System.out.println("Exiting Program....");
+                break;
+            }
+
+            else {
+                System.out.println("Invalid choice.");
+            }
+        }
+
+        sc.close();
+    }
+}
+   
